@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#3B1470">
+<meta name="color-scheme" content="light">
+<title>Zepto First Basket</title>
+<style>
+:root{
+  /* Layout idea: one phone-width column, purple header with a 3-step tracker, white cards, sticky bottom action bar. */
+  --plum:#3B1470; --plum-2:#5B2AA0; --tint:#F1E9FB; --pink:#E8307F;
+  --ink:#1D1230; --mute:#625775; --line:#E2D9F0; --paper:#FFFFFF; --bg:#F6F2FB;
+  --ok:#0B6B3A; --ok-bg:#E2F5EA; --warn-bg:#FFF4D6; --warn:#7A5200;
+  --font: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.4;-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent;color-scheme:light}
+button{font-family:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--pink);outline-offset:2px}
+.app{max-width:480px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;background:var(--bg)}
+
+/* header + tracker */
+.top{background:var(--plum);color:#fff;padding:calc(10px + env(safe-area-inset-top)) 16px 14px}
+.top-row{display:flex;align-items:center;gap:8px;min-height:44px}
+.back{width:44px;height:44px;margin-left:-10px;border:0;background:transparent;color:#fff;font-size:24px;line-height:1;border-radius:12px}
+.back[hidden]{display:none}
+.brand{font-weight:800;font-size:24px;letter-spacing:-.03em}
+.tag{margin-left:auto;font-size:12px;font-weight:600;background:rgba(255,255,255,.16);padding:4px 10px;border-radius:999px}
+.steps{list-style:none;display:flex;gap:6px;margin:6px 0 0;padding:0}
+.steps li{flex:1;font-size:12px;font-weight:600;color:rgba(255,255,255,.62)}
+.steps li i{display:block;height:4px;border-radius:4px;background:rgba(255,255,255,.22);margin-bottom:6px}
+.steps li[data-s="on"]{color:#fff}
+.steps li[data-s="on"] i,.steps li[data-s="done"] i{background:var(--pink)}
+.steps li[data-s="done"]{color:rgba(255,255,255,.9)}
+
+main{flex:1;padding:18px 16px 24px}
+.screen[hidden]{display:none}
+h1{font-size:25px;line-height:1.15;letter-spacing:-.02em;margin:0 0 8px;font-weight:800;text-wrap:balance}
+h1:focus{outline:none}
+.lede{margin:0 0 18px;color:var(--mute);font-size:15px;max-width:46ch}
+.label{display:flex;justify-content:space-between;align-items:baseline;margin:16px 0 8px;font-size:14px;font-weight:700}
+.label small{font-weight:600;color:var(--mute);font-size:13px}
+
+/* chips + tiles */
+.chips{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.chip{min-height:48px;padding:6px 4px;border:1.5px solid var(--line);border-radius:14px;background:var(--paper);color:var(--ink);font-weight:600;font-size:15px}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tile{position:relative;text-align:left;display:flex;gap:10px;align-items:center;min-height:68px;padding:10px;border:1.5px solid var(--line);border-radius:16px;background:var(--paper);color:var(--ink)}
+.tile .em{flex:none;width:40px;height:40px;border-radius:12px;background:var(--tint);display:grid;place-items:center;font-size:22px}
+.tile b{display:block;font-size:14px;line-height:1.2}
+.tile span.sub{display:block;margin-top:2px;font-size:12px;color:var(--mute);line-height:1.25}
+.chip[aria-pressed="true"],.tile[aria-pressed="true"]{border-color:var(--plum);background:var(--tint);box-shadow:inset 0 0 0 1px var(--plum)}
+.chip[aria-pressed="true"]{color:var(--plum)}
+.tile[aria-pressed="true"]::after{content:"\2713";position:absolute;top:6px;right:8px;width:18px;height:18px;border-radius:50%;background:var(--plum);color:#fff;font-size:12px;font-weight:800;display:grid;place-items:center}
+.tile[aria-disabled="true"]:not([aria-pressed="true"]){opacity:.45}
+
+/* proof strip */
+.proof{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}
+.proof>span{font-size:12.5px;font-weight:700;color:var(--plum);background:var(--tint);padding:6px 10px;border-radius:999px}
+
+/* basket */
+.card{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:4px 14px}
+.row{display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.thumb{width:44px;height:44px;border-radius:12px;background:var(--tint);display:grid;place-items:center;font-size:24px}
+.nm{font-size:15px;font-weight:700;line-height:1.2}
+.sz{font-size:13px;color:var(--mute)}
+.pr{font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:2px}
+.stepper{display:flex;align-items:center;border:1.5px solid var(--plum);border-radius:12px;overflow:hidden}
+.stepper button{width:40px;height:40px;border:0;background:var(--tint);color:var(--plum);font-size:20px;font-weight:700;line-height:1}
+.stepper output{min-width:28px;text-align:center;font-weight:800;font-variant-numeric:tabular-nums}
+.empty{padding:22px 0;text-align:center;color:var(--mute)}
+
+.free{margin:14px 0;padding:12px 14px;border-radius:16px;background:var(--warn-bg);color:var(--warn)}
+.free.ok{background:var(--ok-bg);color:var(--ok)}
+.free b{display:block;font-size:14px}
+.meter{height:6px;border-radius:6px;background:rgba(0,0,0,.1);margin:8px 0 2px;overflow:hidden}
+.meter i{display:block;height:100%;background:currentColor;border-radius:6px;transition:width .25s}
+.adds{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.add{min-height:40px;padding:6px 12px;border:1.5px solid currentColor;border-radius:999px;background:#fff;color:var(--warn);font-weight:700;font-size:13px}
+
+.bill{margin-top:14px}
+.bill dl{margin:0;padding:6px 14px 12px}
+.bill .l{display:flex;justify-content:space-between;gap:12px;padding:7px 0;font-size:15px;font-variant-numeric:tabular-nums}
+.bill .l dt,.bill .l dd{margin:0}
+.bill .g dd{color:var(--ok);font-weight:700}
+.bill .t{border-top:1.5px dashed var(--line);margin-top:4px;padding-top:12px;font-size:18px;font-weight:800}
+.bill s{color:var(--mute);margin-right:6px;font-weight:500}
+.save{margin:10px 14px 14px;padding:8px 12px;border-radius:12px;background:var(--ok-bg);color:var(--ok);font-weight:700;font-size:14px}
+.fine{font-size:12.5px;color:var(--mute);margin:10px 2px 0}
+
+/* action bar */
+.bar{position:sticky;bottom:0;background:var(--paper);border-top:1px solid var(--line);padding:10px 16px calc(12px + env(safe-area-inset-bottom));box-shadow:0 -6px 18px rgba(59,20,112,.08)}
+.bar[hidden]{display:none}
+.bar p{margin:0 0 8px;font-size:13px;color:var(--mute);text-align:center}
+.cta{display:block;width:100%;min-height:56px;border:0;border-radius:16px;background:var(--plum);color:#fff;font-size:17px;font-weight:800;letter-spacing:-.01em;text-align:center;text-decoration:none;padding:15px 12px}
+.cta:disabled{background:#CDC3DD;color:#fff;cursor:not-allowed}
+.cta:active:not(:disabled){background:var(--plum-2)}
+.ghost{display:block;width:100%;min-height:48px;margin-top:10px;border:1.5px solid var(--line);border-radius:14px;background:#fff;color:var(--plum);font-weight:700;font-size:15px;text-align:center;text-decoration:none;padding:12px}
+
+/* done */
+.tick{width:64px;height:64px;border-radius:50%;background:var(--ok-bg);color:var(--ok);display:grid;place-items:center;font-size:34px;font-weight:800;margin:6px 0 14px}
+.did{list-style:none;margin:0 0 16px;padding:0}
+.did li{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:15px}
+.did li:last-child{border-bottom:0}
+.did li::before{content:"\2713";flex:none;color:var(--ok);font-weight:800}
+
+/* prototype notes */
+.proto{padding:0 16px calc(16px + env(safe-area-inset-bottom));font-size:12.5px;color:var(--mute)}
+.proto summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:700;color:var(--plum)}
+.proto code,.proto pre{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px}
+.proto pre{margin:6px 0 10px;padding:10px;border-radius:10px;background:var(--paper);border:1px solid var(--line);white-space:pre-wrap;word-break:break-word;max-height:170px;overflow:auto}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@media (min-width:520px){body{padding:20px 0}.app{border-radius:24px;overflow:hidden;box-shadow:0 10px 40px rgba(59,20,112,.18);min-height:calc(100% - 40px)}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="top-row">
+      <button class="back" id="back" type="button" aria-label="Go back" hidden>&#8592;</button>
+      <span class="brand">Zepto</span>
+      <span class="tag">First Basket</span>
+    </div>
+    <ol class="steps" id="steps" aria-label="Progress">
+      <li data-s="on"><i></i>Your usuals</li>
+      <li data-s=""><i></i>Your basket</li>
+      <li data-s=""><i></i>Your cart</li>
+    </ol>
+  </header>
+
+  <main>
+    <!-- 1. INPUT -->
+    <section class="screen" id="s1" aria-labelledby="h1a">
+      <h1 id="h1a" tabindex="-1">See your usual groceries on Zepto in 30 seconds</h1>
+      <p class="lede">Tell us where you are and what you usually buy. We build your basket and show the price and arrival time. No sign-up yet.</p>
+
+      <div class="label" id="lblCity">Where should we deliver?</div>
+      <div class="chips" id="cities" role="group" aria-labelledby="lblCity"></div>
+
+      <div class="label" id="lblNeeds">What do you usually buy? <small id="count">Pick up to 3</small></div>
+      <div class="tiles" id="needs" role="group" aria-labelledby="lblNeeds"></div>
+    </section>
+
+    <!-- 2. OUTPUT -->
+    <section class="screen" id="s2" aria-labelledby="h1b" hidden>
+      <h1 id="h1b" tabindex="-1">Your first Zepto basket</h1>
+      <p class="lede" id="basketSub"></p>
+      <div class="proof">
+        <span>Arrives in <span id="eta"></span>*</span>
+        <span>In stock near you</span>
+        <span>Full price before sign-up</span>
+      </div>
+      <div class="card" id="rows"></div>
+      <div class="free" id="free"></div>
+      <div class="card bill" id="billCard" aria-live="polite">
+        <dl id="bill"></dl>
+        <div class="save" id="save"></div>
+      </div>
+      <p class="fine">*Estimate for your area. Your live arrival time is confirmed before you pay. Fees are shown as they will appear at checkout.</p>
+    </section>
+
+    <!-- 3. CTA RESULT -->
+    <section class="screen" id="s3" aria-labelledby="h1c" hidden>
+      <div class="tick" aria-hidden="true">&#10003;</div>
+      <h1 id="h1c" tabindex="-1">Added. Your cart is ready.</h1>
+      <p class="lede">Your basket is waiting. Verify your phone number at checkout and it is on its way.</p>
+      <ul class="did" id="did"></ul>
+      <a class="cta" id="go" href="https://www.zepto.com/" target="_blank" rel="noopener">Continue to cart on Zepto</a>
+      <button class="ghost" id="edit" type="button">Edit basket</button>
+      <button class="ghost" id="again" type="button">Start over</button>
+      <p class="fine">Prototype note: the live version opens your pre-filled cart. This demo opens zepto.com.</p>
+    </section>
+  </main>
+
+  <div class="bar" id="bar">
+    <p id="barHint"></p>
+    <button class="cta" id="barBtn" type="button" disabled>See my basket</button>
+  </div>
+
+  <details class="proto">
+    <summary>About this prototype</summary>
+    <p>Unofficial concept prototype for a design exercise. Not affiliated with Zepto. Items, prices, fees and the first-order offer are sample values. In production they come from Zepto's live catalogue, stock and offer services for the visitor's pincode.</p>
+    <p>Sample config: <code id="cfg"></code></p>
+    <p>Events this session (what analytics would receive):</p>
+    <pre id="log" aria-live="off"></pre>
+  </details>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ---- sample config (replace with live values from Zepto services) ---- */
+  var CFG = { freeMin: 199, fee: 30, firstOrderOff: 100, maxNeeds: 3, eta: '10 min' };
+
+  var CITIES = ['Mumbai', 'Delhi NCR', 'Bengaluru', 'Pune', 'Hyderabad', 'Chennai'];
+
+  var NEEDS = [
+    { id: 'daily',  label: 'Daily essentials',      sub: 'Milk, bread, eggs',          e: '🥛' },
+    { id: 'fresh',  label: 'Fruit & veg',           sub: 'Tomato, onion, banana',      e: '🥬' },
+    { id: 'snacks', label: 'Snacks & drinks',       sub: 'Chips, biscuits, cola',      e: '🍿' },
+    { id: 'cafe',   label: 'Cafe & ready to eat',   sub: 'Chai, samosa, cold coffee',  e: '☕' },
+    { id: 'staple', label: 'Cooking staples',       sub: 'Atta, dal, oil',             e: '🌾' },
+    { id: 'home',   label: 'Home & personal care',  sub: 'Dishwash, handwash, paste',  e: '🧴' }
+  ];
+
+  var ITEMS = [
+    { id: 'milk',   need: 'daily',  name: 'Toned milk',       size: '500 ml',  price: 33,  e: '🥛' },
+    { id: 'bread',  need: 'daily',  name: 'Sandwich bread',   size: '400 g',   price: 50,  e: '🍞' },
+    { id: 'eggs',   need: 'daily',  name: 'Eggs',             size: '6 pcs',   price: 54,  e: '🥚' },
+    { id: 'tomato', need: 'fresh',  name: 'Tomato',           size: '500 g',   price: 30,  e: '🍅' },
+    { id: 'onion',  need: 'fresh',  name: 'Onion',            size: '1 kg',    price: 44,  e: '🧅' },
+    { id: 'banana', need: 'fresh',  name: 'Banana',           size: '6 pcs',   price: 42,  e: '🍌' },
+    { id: 'chips',  need: 'snacks', name: 'Potato chips',     size: '90 g',    price: 30,  e: '🍟' },
+    { id: 'biscuit',need: 'snacks', name: 'Cream biscuits',   size: '120 g',   price: 30,  e: '🍪' },
+    { id: 'cola',   need: 'snacks', name: 'Cola',             size: '750 ml',  price: 40,  e: '🥤' },
+    { id: 'chai',   need: 'cafe',   name: 'Masala chai',      size: '1 cup',   price: 39,  e: '☕' },
+    { id: 'samosa', need: 'cafe',   name: 'Samosa',           size: '2 pcs',   price: 60,  e: '🥟' },
+    { id: 'coffee', need: 'cafe',   name: 'Cold coffee',      size: '1 glass', price: 99,  e: '🧋' },
+    { id: 'atta',   need: 'staple', name: 'Whole wheat atta', size: '5 kg',    price: 249, e: '🌾' },
+    { id: 'dal',    need: 'staple', name: 'Toor dal',         size: '1 kg',    price: 165, e: '🍲' },
+    { id: 'oil',    need: 'staple', name: 'Sunflower oil',    size: '1 L',     price: 145, e: '🌻' },
+    { id: 'dish',   need: 'home',   name: 'Dishwash liquid',  size: '500 ml',  price: 105, e: '🧼' },
+    { id: 'hand',   need: 'home',   name: 'Handwash refill',  size: '750 ml',  price: 99,  e: '🧴' },
+    { id: 'paste',  need: 'home',   name: 'Toothpaste',       size: '150 g',   price: 99,  e: '🦷' }
+  ];
+
+  /* ---- state ---- */
+  var S = { city: null, needs: [], qty: {}, screen: 1 };
+  var T0 = Date.now(), LOG = [];
+
+  function $(id) { return document.getElementById(id); }
+  function inr(n) { return '₹' + n; }
+  function find(id) { for (var i = 0; i < ITEMS.length; i++) if (ITEMS[i].id === id) return ITEMS[i]; }
+
+  function track(name, props) {
+    var ev = { t: ((Date.now() - T0) / 1000).toFixed(1) + 's', event: name, props: props || {} };
+    LOG.push(ev);
+    if (window.console && console.debug) console.debug('[first-basket]', ev);
+    var el = $('log');
+    el.textContent = LOG.slice(-8).map(function (x) { return x.t + '  ' + x.event + ' ' + JSON.stringify(x.props); }).join('\n');
+  }
+
+  /* ---- maths ---- */
+  function calc() {
+    var sub = 0, n = 0, id;
+    for (id in S.qty) { var it = find(id); sub += it.price * S.qty[id]; n += S.qty[id]; }
+    var delivery = (sub === 0 || sub >= CFG.freeMin) ? 0 : CFG.fee;
+    var off = sub > 0 ? Math.min(CFG.firstOrderOff, sub) : 0;
+    return { sub: sub, n: n, delivery: delivery, off: off, total: sub + delivery - off, gap: Math.max(0, CFG.freeMin - sub) };
+  }
+
+  /* ---- screen 1 ---- */
+  function buildInputs() {
+    $('cities').innerHTML = CITIES.map(function (c) {
+      return '<button type="button" class="chip" data-city="' + c + '" aria-pressed="false">' + c + '</button>';
+    }).join('');
+    $('needs').innerHTML = NEEDS.map(function (n) {
+      return '<button type="button" class="tile" data-need="' + n.id + '" aria-pressed="false">' +
+        '<span class="em" aria-hidden="true">' + n.e + '</span><span><b>' + n.label + '</b><span class="sub">' + n.sub + '</span></span></button>';
+    }).join('');
+  }
+
+  function syncInputs() {
+    var i, el, chips = $('cities').children, tiles = $('needs').children;
+    for (i = 0; i < chips.length; i++) chips[i].setAttribute('aria-pressed', chips[i].getAttribute('data-city') === S.city ? 'true' : 'false');
+    var full = S.needs.length >= CFG.maxNeeds;
+    for (i = 0; i < tiles.length; i++) {
+      el = tiles[i];
+      var on = S.needs.indexOf(el.getAttribute('data-need')) > -1;
+      el.setAttribute('aria-pressed', on ? 'true' : 'false');
+      el.setAttribute('aria-disabled', (full && !on) ? 'true' : 'false');
+    }
+    $('count').textContent = S.needs.length ? S.needs.length + ' of ' + CFG.maxNeeds + ' picked' : 'Pick up to ' + CFG.maxNeeds;
+    var ready = !!S.city && S.needs.length > 0;
+    var btn = $('barBtn');
+    btn.disabled = !ready;
+    btn.textContent = 'See my basket';
+    $('barHint').textContent = !S.city ? 'Pick your city to continue' : (!S.needs.length ? 'Pick at least one thing you buy' : 'Next: your basket, price and arrival time');
+  }
+
+  /* ---- screen 2 ---- */
+  function buildBasket() {
+    S.qty = {};
+    ITEMS.forEach(function (it) { if (S.needs.indexOf(it.need) > -1) S.qty[it.id] = 1; });
+    track('basket_generated', { city: S.city, needs: S.needs.slice(), items: Object.keys(S.qty).length, subtotal: calc().sub });
+  }
+
+  function suggestions(gap) {
+    var pool = ITEMS.filter(function (it) { return !S.qty[it.id]; });
+    pool.sort(function (a, b) {
+      var ak = a.price >= gap ? 0 : 1, bk = b.price >= gap ? 0 : 1;
+      return ak - bk || Math.abs(a.price - gap) - Math.abs(b.price - gap);
+    });
+    var seen = {}, out = [];
+    pool.forEach(function (it) { if (out.length < 3 && !seen[it.need]) { seen[it.need] = 1; out.push(it); } });
+    return out;
+  }
+
+  function renderBasket() {
+    var c = calc(), id, html = '';
+    $('eta').textContent = '~' + CFG.eta;
+    $('basketSub').textContent = 'Delivering to ' + S.city + ' · built from what you told us';
+    for (id in S.qty) {
+      var it = find(id), q = S.qty[id];
+      html += '<div class="row"><div class="thumb" aria-hidden="true">' + it.e + '</div>' +
+        '<div><div class="nm">' + it.name + '</div><div class="sz">' + it.size + '</div><div class="pr">' + inr(it.price * q) + '</div></div>' +
+        '<div class="stepper" role="group" aria-label="Quantity of ' + it.name + '">' +
+        '<button type="button" data-q="-1" data-id="' + id + '" aria-label="Remove one ' + it.name + '">−</button>' +
+        '<output aria-live="polite">' + q + '</output>' +
+        '<button type="button" data-q="1" data-id="' + id + '" aria-label="Add one ' + it.name + '">+</button></div></div>';
+    }
+    if (!c.n) html = '<div class="empty">Your basket is empty. <br>Go back to pick what you usually buy.</div>';
+    $('rows').innerHTML = html;
+
+    var free = $('free');
+    if (!c.n) {
+      free.hidden = true;
+    } else if (c.gap === 0) {
+      free.hidden = false; free.className = 'free ok';
+      free.innerHTML = '<b>Free delivery unlocked</b>You are over ' + inr(CFG.freeMin) + '.';
+    } else {
+      free.hidden = false; free.className = 'free';
+      var pct = Math.round(100 * c.sub / CFG.freeMin);
+      free.innerHTML = '<b>Add ' + inr(c.gap) + ' more for free delivery</b><div class="meter" aria-hidden="true"><i style="width:' + pct + '%"></i></div><div class="adds">' +
+        suggestions(c.gap).map(function (s) { return '<button type="button" class="add" data-add="' + s.id + '">+ ' + s.name + ' ' + inr(s.price) + '</button>'; }).join('') + '</div>';
+    }
+
+    var l = '';
+    l += '<div class="l"><dt>Items (' + c.n + ')</dt><dd>' + inr(c.sub) + '</dd></div>';
+    l += '<div class="l' + (c.delivery === 0 && c.n ? ' g' : '') + '"><dt>Delivery</dt><dd>' + (c.n ? (c.delivery === 0 ? '<s>' + inr(CFG.fee) + '</s>FREE' : inr(c.delivery)) : inr(0)) + '</dd></div>';
+    l += '<div class="l g"><dt>First-order offer</dt><dd>−' + inr(c.off) + '</dd></div>';
+    l += '<div class="l t"><dt>Total</dt><dd>' + inr(c.total) + '</dd></div>';
+    $('bill').innerHTML = l;
+    $('save').textContent = c.n ? 'You save ' + inr(c.off + (c.delivery === 0 ? CFG.fee : 0)) + ' on this first basket' : 'Add items to see your savings';
+    $('save').hidden = !c.n;
+
+    var btn = $('barBtn');
+    btn.disabled = !c.n;
+    btn.textContent = c.n ? 'Add ' + c.n + (c.n === 1 ? ' item' : ' items') + ' to cart · ' + inr(c.total) : 'Add items to continue';
+    $('barHint').textContent = 'No account needed to build your cart. You verify your phone at checkout.';
+  }
+
+  /* ---- screen 3 ---- */
+  function renderDone() {
+    var c = calc();
+    $('did').innerHTML =
+      '<li>' + c.n + (c.n === 1 ? ' item is' : ' items are') + ' in your cart (' + inr(c.sub) + ')</li>' +
+      '<li>First-order offer applied: −' + inr(c.off) + '. No code to type.</li>' +
+      '<li>Delivery to ' + S.city + (c.delivery === 0 ? ' is free' : ' costs ' + inr(c.delivery)) + '. Total ' + inr(c.total) + '</li>' +
+      '<li>Next: verify your phone number, pick a payment method, done</li>';
+  }
+
+  /* ---- navigation ---- */
+  function show(n) {
+    S.screen = n;
+    for (var i = 1; i <= 3; i++) $('s' + i).hidden = (i !== n);
+    var li = $('steps').children;
+    for (var j = 0; j < li.length; j++) li[j].setAttribute('data-s', j + 1 < n ? 'done' : (j + 1 === n ? 'on' : ''));
+    $('back').hidden = (n === 1);
+    $('bar').hidden = (n === 3);
+    if (n === 1) syncInputs();
+    if (n === 2) renderBasket();
+    if (n === 3) renderDone();
+    window.scrollTo(0, 0);
+    var h = $(['', 'h1a', 'h1b', 'h1c'][n]);
+    if (h && h.focus) h.focus({ preventScroll: true });
+  }
+
+  /* ---- events ---- */
+  $('cities').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-city]'); if (!b) return;
+    S.city = b.getAttribute('data-city'); track('city_selected', { city: S.city }); syncInputs();
+  });
+  $('needs').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-need]'); if (!b) return;
+    var id = b.getAttribute('data-need'), k = S.needs.indexOf(id);
+    if (k > -1) S.needs.splice(k, 1);
+    else if (S.needs.length < CFG.maxNeeds) S.needs.push(id);
+    else return;
+    track('need_toggled', { need: id, selected: k === -1, total: S.needs.length }); syncInputs();
+  });
+  $('rows').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-q]'); if (!b) return;
+    var id = b.getAttribute('data-id'), d = parseInt(b.getAttribute('data-q'), 10);
+    S.qty[id] = (S.qty[id] || 0) + d;
+    if (S.qty[id] <= 0) delete S.qty[id];
+    track('qty_changed', { item: id, qty: S.qty[id] || 0 }); renderBasket();
+  });
+  $('free').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-add]'); if (!b) return;
+    var id = b.getAttribute('data-add'); S.qty[id] = 1;
+    track('addon_added', { item: id, subtotal: calc().sub }); renderBasket();
+  });
+  $('barBtn').addEventListener('click', function () {
+    if (S.screen === 1) { buildBasket(); show(2); }
+    else if (S.screen === 2) {
+      var c = calc(); if (!c.n) return;
+      track('cta_add_to_cart_click', { items: c.n, subtotal: c.sub, total: c.total, city: S.city, needs: S.needs.slice() });
+      show(3);
+    }
+  });
+  $('back').addEventListener('click', function () { show(S.screen === 3 ? 2 : 1); });
+  $('edit').addEventListener('click', function () { show(2); });
+  $('again').addEventListener('click', function () { S = { city: null, needs: [], qty: {}, screen: 1 }; track('restart'); show(1); });
+  $('go').addEventListener('click', function () { track('handoff_click', { total: calc().total }); });
+
+  /* ---- boot ---- */
+  $('cfg').textContent = JSON.stringify(CFG);
+  buildInputs(); syncInputs(); track('widget_view');
+  window.__firstBasket = { S: function () { return S; }, calc: calc, CFG: CFG, LOG: LOG };
+  window.__ready = true;
+})();
+</script>
+</body>
+</html>
